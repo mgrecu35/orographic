@@ -16,17 +16,7 @@ from sklearn.neighbors import KNeighborsRegressor
 knn = neighbors.KNeighborsRegressor(n_neighbors, weights='distance')
 from sklearn.model_selection import train_test_split
 
-z1L=[]
-pRateL=[]
-z140L=[]
-pRate40L=[]
-xtfL_1=[]
-xtfL_2=[]
-xtfL_40_1=[]
-xtfL_40_2=[]
-    
-def readData(fname,z1L,pRateL,z140L,pRate40L,\
-             xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2):
+def readData(fname):
     fh=Dataset(fname)
     zka=fh["zka"][:]
     zkat=fh["zkat"][:]
@@ -40,10 +30,18 @@ def readData(fname,z1L,pRateL,z140L,pRate40L,\
     attL=[]
     attZL=[]
     pia2dL=[]
+    z1L=[]
+    pRateL=[]
+    
     att40L=[]
     attZ40L=[]
     pia2d40L=[]
-    
+    z140L=[]
+    pRate40L=[]
+    xtfL_1=[]
+    xtfL_2=[]
+    xtfL_40_1=[]
+    xtfL_40_2=[]
     zs=np.array([8.21868427, 8.27254699, 8.30685336, 8.30634989, 8.26425975,
                  8.23223687, 8.13703432, 8.08034568, 7.97254592, 7.86304235,
                  7.73122532, 7.59266912, 7.46987865, 7.30355459, 7.18684333,
@@ -70,7 +68,7 @@ def readData(fname,z1L,pRateL,z140L,pRate40L,\
             z1[z1<0]=0
             z1+=np.random.randn()
             z1l=list(((z1-zm)/zs)[:32])
-            z1l.append((pia2dL[-1]+np.random.randn()*2-6)/8.0)
+            z1l.append((pia2dL[-1]+np.random.randn()*3-6)/8.0)
             xtfL_1.append(z1l[:32][::-1])
             xtfL_2.append(z1l[-1])
             z1L.append(z1l)
@@ -89,32 +87,43 @@ def readData(fname,z1L,pRateL,z140L,pRate40L,\
             xtfL_40_1.append(z1l[:32][::-1])
             xtfL_40_2.append(z1l[-1])
             pRate40L.append(prate2d[i1,i2])
-    return z1L,pRateL,z140L,pRate40L,xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2
+    return z1L,pRateL,z140L,pRate40L,zRL,xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2
 
-import glob
-fnames=glob.glob("../orographic2/*.aveg_grid.nc")
-for fname in fnames:
-    z1L,pRateL,z140L,pRate40L,\
-        xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2=readData(fname,z1L,pRateL,z140L,pRate40L,\
-                                                   xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2)
-    
-x_train,x_test,\
-    y_train, y_test = train_test_split(np.array(z1L)[:,:-1], np.array(pRateL),\
+z1L,pRateL,z140L,pRate40L,zRL,xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2=readData(fname)
+
+x_train1,x_test1,\
+    ind_train, ind_test = train_test_split(np.array(xtfL_1)[:,:], np.arange(len(pRateL)),\
                                        test_size=0.5, random_state=42)
 
-knn.fit(x_train,y_train)
-yp=knn.predict(x_test)
+y_test=np.array(pRateL)[ind_test]
+y_train=np.array(pRateL)[ind_train]
 
+x_test2=np.array(xtfL_2)[ind_test]
+x_train2=np.array(xtfL_2)[ind_train]
+
+from combModel import lstm_model, tf
+
+model=lstm_model(1,1)
+x_train1=x_train1[:,:,np.newaxis]
+x_test1=x_test1[:,:,np.newaxis]
+
+itrain=1
+if itrain==1:
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(),  \
+        loss='mse',\
+        metrics=[tf.keras.metrics.MeanSquaredError()])
+    history = model.fit([x_train1,x_train2], y_train[:], \
+                        batch_size=32,epochs=40,
+                        validation_data=([x_test1,x_test2], y_test[:]))
+else:
+    model=tf.keras.models.load_model("radarProfilingKa.h5")
+
+model.save("radarProfilingKa.h5")
+
+yp=model.predict([x_test1,x_test2])[:,0]
 for intv in [[1,2],[2,4],[4,6],[6,8],[8,10],[10,20]]:
     a=np.nonzero((y_test-intv[0])*(y_test-intv[1])<0)
     rms=(((yp[a[0]]-y_test[a[0]])**2).mean())**0.5/y_test[a[0]].mean()
     print("%6.2f %6.2f %6.2f %6.2f"%(intv[0],intv[1],\
                                      (-1+yp[a[0]].mean()/y_test[a[0]].mean())*100,rms*100))
-
-
-x_train40,x_test40,\
-    y_train40, y_test40 = train_test_split(np.array(z140L), np.array(pRate40L),\
-                                       test_size=0.5, random_state=42)
-
-knn.fit(x_train40,y_train40)
-yp=knn.predict(x_test40)

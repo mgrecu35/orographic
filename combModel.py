@@ -1,10 +1,10 @@
 from keras.models import Sequential
-from keras.layers import Merge, Activation, Dense
 from keras.layers.recurrent import LSTM
+import tensorflow as tf
+from tensorflow.keras.layers import *
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.optimizers import Adam, RMSprop
 
-n, m = 10, 3
-input_dim = 10
-output_dim = 20
 
 #first_model = Sequential()
 #first_model.add(LSTM(output_dim, input_shape=(m, input_dim)))
@@ -21,7 +21,36 @@ output_dim = 20
 from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
 from keras.models import Model
 
-# Define two input layers
+def lstm_model(ndims=2,ninp=1):
+    ntimes=None
+    inp1 = tf.keras.layers.Input(shape=(ntimes,ndims,))
+    inp2 = tf.keras.layers.Input(shape=(ninp,))
+    out1 = tf.keras.layers.LSTM(12, return_sequences=True)(inp1)
+    out1 = tf.keras.layers.LSTM(12, return_sequences=False)(out1)
+    out1 = tf.keras.layers.Dense(1)(out1)
+    concat_layer= Concatenate()([out1, inp2])
+    out1 = tf.keras.layers.Dense(6,activation='relu')(concat_layer)
+    out1 = tf.keras.layers.Dropout(0.1) (out1)
+    out1 = tf.keras.layers.Dense(6,activation='relu')(out1)
+    out1 = tf.keras.layers.Dropout(0.1) (out1)
+    out = tf.keras.layers.Dense(1)(out1)
+    model = tf.keras.Model(inputs=[inp1,inp2], outputs=out)
+    return model
+
+#mod=lstm_model(1,1)
+
+#ndims=1
+#ninp=1
+#ntimes=2
+#inp1 = tf.keras.layers.Input(shape=(ntimes,ndims,))
+#inp2 = tf.keras.layers.Input(shape=(ninp,))
+#out1 = tf.keras.layers.LSTM(12, return_sequences=True)(inp1)
+#out1 = tf.keras.layers.LSTM(12, return_sequences=False)(out1)
+#out1 = tf.keras.layers.Dense(1)(out1)
+#out1 = Flatten()(out1)
+#concat_layer= Concatenate()([out1, inp2])
+#out1 = tf.keras.layers.Dense(6)(concat_layer)
+# Defin1e two input layers
 #image_input = Input((32, 32, 3))
 #vector_input = Input((6,))
 

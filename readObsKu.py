@@ -11,7 +11,7 @@ import numpy as np
 #sdsu.initp2()
 
 from sklearn import neighbors
-n_neighbors=50
+n_neighbors=30
 from sklearn.neighbors import KNeighborsRegressor
 knn = neighbors.KNeighborsRegressor(n_neighbors, weights='distance')
 from sklearn.model_selection import train_test_split
@@ -28,12 +28,12 @@ xtfL_40_2=[]
 def readData(fname,z1L,pRateL,z140L,pRate40L,\
              xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2):
     fh=Dataset(fname)
-    zka=fh["zka"][:]
-    zkat=fh["zkat"][:]
+    zku=fh["zku"][:]
+    zkut=fh["zkut"][:]
     temp=fh["temp3d"][:]
-    a=np.nonzero(zka[:,:,25]>0)
+    a=np.nonzero(zku[:,:,25]>0)
     b=np.nonzero(a[0]==105)
-    piaKa=fh["piaKa"][:]
+    piaKu=fh["piaKu"][:]
     prate2d=fh["prate2d"][:]
     zRL=[]
     z40RL=[]
@@ -61,26 +61,26 @@ def readData(fname,z1L,pRateL,z140L,pRate40L,\
     
     ic40=0
     for i1,i2 in zip(a[0],a[1]):
-        if zkat[i1,i2,33]-zka[i1,i2,33]>0 and zkat[i1,i2,33]>10 and piaKa[i1,i2]<40:
-            attZL.append((10**(0.1*zka[i1,i2,34:]*0.72)).sum())
-            attL.append(zkat[i1,i2,33]-zka[i1,i2,33])
-            pia2dL.append(piaKa[i1,i2])
-            zRL.append(zka[i1,i2,:38])
-            z1=zka[i1,i2,:38].copy()
+        if zkut[i1,i2,33]-zku[i1,i2,33]>0 and zkut[i1,i2,33]>10 and piaKu[i1,i2]<40:
+            attZL.append((10**(0.1*zku[i1,i2,34:]*0.72)).sum())
+            attL.append(zkut[i1,i2,33]-zku[i1,i2,33])
+            pia2dL.append(piaKu[i1,i2])
+            zRL.append(zku[i1,i2,:38])
+            z1=zku[i1,i2,:38].copy()
             z1[z1<0]=0
             z1+=np.random.randn()
             z1l=list(((z1-zm)/zs)[:32])
-            z1l.append((pia2dL[-1]+np.random.randn()*2-6)/8.0)
+            z1l.append((pia2dL[-1]+np.random.randn()*3-6)/3.0)
             xtfL_1.append(z1l[:32][::-1])
             xtfL_2.append(z1l[-1])
             z1L.append(z1l)
             pRateL.append(prate2d[i1,i2])
         else:
             ic40+=1
-            attZ40L.append((10**(0.1*zka[i1,i2,34:]*0.72)).sum())
-            att40L.append(zkat[i1,i2,33]-zka[i1,i2,33])
-            pia2d40L.append(piaKa[i1,i2])
-            z1=zka[i1,i2,:38].copy()
+            attZ40L.append((10**(0.1*zku[i1,i2,34:]*0.72)).sum())
+            att40L.append(zkut[i1,i2,33]-zku[i1,i2,33])
+            pia2d40L.append(piaKu[i1,i2])
+            z1=zku[i1,i2,:38].copy()
             z1[z1<0]=0
             z1+=np.random.randn()
             z1l=list(((z1-zm)/zs)[:32])
@@ -99,13 +99,13 @@ for fname in fnames:
                                                    xtfL_1,xtfL_2,xtfL_40_1,xtfL_40_2)
     
 x_train,x_test,\
-    y_train, y_test = train_test_split(np.array(z1L)[:,:-1], np.array(pRateL),\
+    y_train, y_test = train_test_split(np.array(z1L)[:,:], np.array(pRateL),\
                                        test_size=0.5, random_state=42)
 
 knn.fit(x_train,y_train)
 yp=knn.predict(x_test)
 
-for intv in [[1,2],[2,4],[4,6],[6,8],[8,10],[10,20]]:
+for intv in [[1,2],[2,4],[4,6],[6,8],[8,10],[10,20],[20,30]]:
     a=np.nonzero((y_test-intv[0])*(y_test-intv[1])<0)
     rms=(((yp[a[0]]-y_test[a[0]])**2).mean())**0.5/y_test[a[0]].mean()
     print("%6.2f %6.2f %6.2f %6.2f"%(intv[0],intv[1],\
@@ -117,4 +117,4 @@ x_train40,x_test40,\
                                        test_size=0.5, random_state=42)
 
 knn.fit(x_train40,y_train40)
-yp=knn.predict(x_test40)
+yp40=knn.predict(x_test40)
