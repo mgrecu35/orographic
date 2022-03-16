@@ -43,7 +43,7 @@ def calcprob(S,K,Nd,nbin):
             S[ic]=s
             ic+=1
         if Nd[i]>1:
-            S[ic]=s+Nd[i]*(Nd[i]-1)/2*K[i,j]
+            S[ic]=s+Nd[i]*(Nd[i]-1)/2*K[i,i]
         else:
             S[ic]=s
         ic+=1
